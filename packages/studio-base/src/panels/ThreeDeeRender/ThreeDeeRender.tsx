@@ -52,6 +52,8 @@ import type { LayerSettingsTransform } from "./renderables/FrameAxes";
 import { PublishClickEvent } from "./renderables/PublishClickTool";
 import { DEFAULT_PUBLISH_SETTINGS } from "./renderables/PublishSettings";
 import { InterfaceMode } from "./types";
+import { stopRecordVideo } from "@foxglove/studio-base/panels/video/downloadVideo";
+import { DownloadModal } from "@foxglove/studio-base/panels/video/DownloadVIdeoModal";
 
 const log = Logger.getLogger(__filename);
 
@@ -98,8 +100,9 @@ export function ThreeDeeRender(props: {
   interfaceMode: InterfaceMode;
 }): JSX.Element {
   const { context, interfaceMode } = props;
-  const { initialState, saveState } = context;
-
+  const { initialState, saveState, downloadVideoInfo } = context;
+  // @ts-ignore
+  const { play, stop, start, startTime, seek, endTime } = downloadVideoInfo;
   // Load and save the persisted panel configuration
   const [config, setConfig] = useState<Immutable<RendererConfig>>(() => {
     const partialConfig = initialState as DeepPartial<RendererConfig> | undefined;
@@ -736,6 +739,35 @@ export function ThreeDeeRender(props: {
     context.dataSourceProfile === "ros1" || context.dataSourceProfile === "ros2";
   const canPublish = context.publish != undefined && isRosDataSource;
 
+  const [downloadStarted, setDownloadStarted] = useState(false);
+  const [isDownloadPressed, setIsDownloadPressed] = useState(false);
+
+  const showDownloadModal = () => {
+    setIsDownloadPressed(true);
+  };
+
+  const stopRecord = () => {
+    setDownloadStarted(false);
+    stop();
+    stopRecordVideo();
+  };
+  const [playingTime, setPlayingTime] = useState(0);
+
+  useEffect(() => {
+    if (currentTime && currentTime.sec === playingTime) {
+      stopRecord();
+    }
+  }, [currentTime, playingTime]);
+
+  const videoProps = {
+    seek,
+    play,
+    stop,
+    start,
+    startTime,
+    endTime,
+  };
+
   return (
     <ThemeProvider isDark={colorScheme === "dark"}>
       <div style={PANEL_STYLE} onKeyDown={onKeyDown}>
@@ -767,9 +799,20 @@ export function ThreeDeeRender(props: {
               renderer?.publishClickTool.start();
             }}
             timezone={timezone}
+            downloadVideo={showDownloadModal}
+            stopRecord={stopRecord}
+            downloadStarted={downloadStarted}
           />
         </RendererContext.Provider>
       </div>
+      {isDownloadPressed &&
+      <DownloadModal
+        setDownloadStarted={setDownloadStarted}
+        setIsDownloadPressed={setIsDownloadPressed}
+        canvas={canvas}
+        videoProps={videoProps}
+        setPlayingTime={setPlayingTime}
+      />}
     </ThemeProvider>
   );
 }

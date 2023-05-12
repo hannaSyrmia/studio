@@ -2,7 +2,7 @@
 // License, v2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/
 
-import { Ruler24Filled } from "@fluentui/react-icons";
+import { ArrowDownloadRegular, Ruler24Filled } from "@fluentui/react-icons";
 import {
   Button,
   IconButton,
@@ -67,6 +67,19 @@ const useStyles = makeStyles()((theme) => ({
     marginBottom: theme.spacing(1),
     marginRight: theme.spacing(1),
   },
+  paper: {
+    padding: "20px",
+  },
+  downloadButton: {
+    height: "50px",
+    width: "100px",
+    background: "blue",
+  },
+  input: {
+    width: "250px",
+    height: "50px",
+    border: "2px solid blue",
+  },
 }));
 
 /**
@@ -87,6 +100,9 @@ export function RendererOverlay(props: {
   onChangePublishClickType: (_: PublishClickType) => void;
   onClickPublish: () => void;
   timezone: string | undefined;
+  downloadVideo: () => void;
+  stopRecord: () => void;
+  downloadStarted: boolean;
 }): JSX.Element {
   const { t } = useTranslation("threeDee");
   const { classes } = useStyles();
@@ -317,7 +333,15 @@ export function RendererOverlay(props: {
             >
               <Ruler24Filled className={classes.rulerIcon} />
             </IconButton>
-
+            <IconButton
+              data-testid="download-button"
+              className={classes.iconButton}
+              color={props.downloadStarted ? "info" : "inherit"}
+              title={props.downloadStarted ? "Stop record and Download" : "Download Video"}
+              onClick={props.downloadStarted ? props.stopRecord : props.downloadVideo}
+            >
+              <ArrowDownloadRegular className={classes.iconButton} />
+            </IconButton>
             {publishControls}
           </Paper>
         )}

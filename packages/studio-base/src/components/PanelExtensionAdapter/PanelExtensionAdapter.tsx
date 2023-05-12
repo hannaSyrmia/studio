@@ -54,6 +54,7 @@ import { assertNever } from "@foxglove/studio-base/util/assertNever";
 
 import { PanelConfigVersionError } from "./PanelConfigVersionError";
 import { initRenderStateBuilder } from "./renderState";
+import { subtractTimes } from "@foxglove/studio-base/players/UserNodePlayer/nodeTransformerWorker/typescript/userUtils/time";
 
 const log = Logger.getLogger(__filename);
 
@@ -109,6 +110,13 @@ function PanelExtensionAdapter(props: PanelExtensionAdapterProps): JSX.Element {
   const initialState = useLatest(config);
 
   const messagePipelineContext = useMessagePipeline(selectContext);
+
+  const selectStartTime = (ctx: MessagePipelineContext) => ctx.playerState.activeData?.startTime;
+  const selectEndTime = (ctx: MessagePipelineContext) => ctx.playerState.activeData?.endTime;
+  const selectCurrentTime = (ctx: MessagePipelineContext) => ctx.playerState.activeData?.currentTime;
+  const startTime = useMessagePipeline(selectStartTime);
+  const endTime = useMessagePipeline(selectEndTime);
+  const currentTime = useMessagePipeline(selectCurrentTime);
 
   const { playerState, pauseFrame, setSubscriptions, seekPlayback, sortedTopics } =
     messagePipelineContext;
@@ -304,9 +312,19 @@ function PanelExtensionAdapter(props: PanelExtensionAdapterProps): JSX.Element {
       },
     };
 
+    const downloadVideoInfo = {
+      play: messagePipelineContext.startPlayback,
+      stop: messagePipelineContext.pausePlayback,
+      seek: messagePipelineContext.seekPlayback,
+      duration: endTime && startTime ? subtractTimes(endTime, startTime) : undefined,
+      currentTime,
+      startTime,
+      endTime
+    }
+
     return {
       initialState: initialState.current,
-
+      downloadVideoInfo,
       saveState: (state) => {
         if (!isMounted()) {
           return;

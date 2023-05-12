@@ -387,6 +387,11 @@ export type PanelExtensionContext = {
    * manually. A value of `undefined` will display the panel's name in the title bar.
    */
   setDefaultPanelTitle(defaultTitle: string | undefined): void;
+
+  /**
+   * Date for download video
+   */
+  downloadVideoInfo: unknown;
 };
 
 export type ExtensionPanelRegistration = {
