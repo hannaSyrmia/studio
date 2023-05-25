@@ -4,7 +4,7 @@
 
 import EventEmitter from "eventemitter3";
 import i18next from "i18next";
-import { Immutable, produce } from "immer";
+import { produce } from "immer";
 import * as THREE from "three";
 import { DeepPartial, assert } from "ts-essentials";
 import { v4 as uuidv4 } from "uuid";
@@ -13,6 +13,7 @@ import Logger from "@foxglove/log";
 import { Time, fromNanoSec, isLessThan, toNanoSec } from "@foxglove/rostime";
 import type { FrameTransform, FrameTransforms, SceneUpdate } from "@foxglove/schemas";
 import {
+  Immutable,
   MessageEvent,
   ParameterValue,
   SettingsIcon,
@@ -24,7 +25,7 @@ import {
 } from "@foxglove/studio";
 import { FoxgloveGrid } from "@foxglove/studio-base/panels/ThreeDeeRender/renderables/FoxgloveGrid";
 import { ICameraHandler } from "@foxglove/studio-base/panels/ThreeDeeRender/renderables/ICameraHandler";
-import { light, dark } from "@foxglove/studio-base/theme/palette";
+import { dark, light } from "@foxglove/studio-base/theme/palette";
 import { fonts } from "@foxglove/studio-base/util/sharedStyleConstants";
 import { LabelMaterial, LabelPool } from "@foxglove/three-text";
 
@@ -38,7 +39,7 @@ import {
 } from "./IRenderer";
 import { Input } from "./Input";
 import { LineMaterial } from "./LineMaterial";
-import { ModelCache, DEFAULT_MESH_UP_AXIS } from "./ModelCache";
+import { DEFAULT_MESH_UP_AXIS, ModelCache } from "./ModelCache";
 import { PickedRenderable, Picker } from "./Picker";
 import type { Renderable } from "./Renderable";
 import { SceneExtension } from "./SceneExtension";
@@ -82,8 +83,8 @@ import {
   Quaternion,
   TFMessage,
   TF_DATATYPES,
-  TransformStamped,
   TRANSFORM_STAMPED_DATATYPES,
+  TransformStamped,
   Vector3,
 } from "./ros";
 import { SelectEntry } from "./settings";
@@ -498,7 +499,7 @@ export class Renderer extends EventEmitter<RendererEvents> implements IRenderer 
    * @param allFrames - array of all preloaded messages
    * @returns {boolean} - whether the allFramesCursor has been updated and new messages were read in
    */
-  public handleAllFramesMessages(allFrames?: readonly MessageEvent<unknown>[]): boolean {
+  public handleAllFramesMessages(allFrames?: readonly MessageEvent[]): boolean {
     const currentTime = fromNanoSec(this.currentTime);
     const allFramesCursor = this.#allFramesCursor;
     // index always indicates last read-in message
@@ -847,7 +848,7 @@ export class Renderer extends EventEmitter<RendererEvents> implements IRenderer 
     }
   }
 
-  public addMessageEvent(messageEvent: Readonly<MessageEvent<unknown>>): void {
+  public addMessageEvent(messageEvent: Readonly<MessageEvent>): void {
     const { message } = messageEvent;
 
     const maybeHasHeader = message as DeepPartial<{ header: Header }>;
@@ -1300,7 +1301,7 @@ export class Renderer extends EventEmitter<RendererEvents> implements IRenderer 
 }
 
 function handleMessage(
-  messageEvent: Readonly<MessageEvent<unknown>>,
+  messageEvent: Readonly<MessageEvent>,
   subscriptions: RendererSubscription[] | undefined,
 ): void {
   if (subscriptions) {

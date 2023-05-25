@@ -3,7 +3,8 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/
 
 import { StoryObj } from "@storybook/react";
-import { fireEvent, screen, userEvent } from "@storybook/testing-library";
+import { screen, userEvent } from "@storybook/testing-library";
+import { useCallback, useState } from "react";
 
 import {
   CompressedImage,
@@ -12,6 +13,7 @@ import {
   RawImage,
 } from "@foxglove/schemas";
 import { MessageEvent } from "@foxglove/studio";
+import Stack from "@foxglove/studio-base/components/Stack";
 import { makeImageAndCalibration } from "@foxglove/studio-base/panels/ThreeDeeRender/stories/ImageMode/imageCommon";
 import { Topic } from "@foxglove/studio-base/players/types";
 import PanelSetup, { Fixture } from "@foxglove/studio-base/stories/PanelSetup";
@@ -27,7 +29,7 @@ export default {
   parameters: { colorScheme: "light" },
 };
 
-const ImageModeRosImage = ({ imageType }: { imageType: "raw" | "png" }) => {
+const ImageModeRosImage = ({ imageType }: { imageType: "raw" | "png" }): JSX.Element => {
   const topics: Topic[] = [
     { name: "/cam1/info", schemaName: "foxglove.CameraCalibration" },
     { name: "/cam2/info", schemaName: "foxglove.CameraCalibration" },
@@ -169,15 +171,29 @@ const ImageModeRosImage = ({ imageType }: { imageType: "raw" | "png" }) => {
   );
 };
 
-export const ImageModeRosRawImage: StoryObj = {
-  render: () => <ImageModeRosImage imageType="raw" />,
+export const ImageModeRosRawImage: StoryObj<React.ComponentProps<typeof ImageModeRosImage>> = {
+  render: ImageModeRosImage,
+  args: { imageType: "raw" },
 };
 
-export const ImageModeRosPngImage: StoryObj = {
-  render: () => <ImageModeRosImage imageType="png" />,
+export const ImageModeRosPngImage: StoryObj<React.ComponentProps<typeof ImageModeRosImage>> = {
+  render: ImageModeRosImage,
+  args: { imageType: "png" },
 };
 
-const ImageModeFoxgloveImage = ({ imageType }: { imageType: "raw" | "png" }) => {
+const ImageModeFoxgloveImage = ({
+  imageType = "raw",
+  rotation,
+  onDownload,
+  flipHorizontal = false,
+  flipVertical = false,
+}: {
+  imageType?: "raw" | "png";
+  rotation?: 0 | 90 | 180 | 270;
+  flipHorizontal?: boolean;
+  flipVertical?: boolean;
+  onDownload?: (blob: Blob, fileName: string) => void;
+}): JSX.Element => {
   const topics: Topic[] = [
     { name: "/cam1/info", schemaName: "foxglove.CameraCalibration" },
     { name: "/cam2/info", schemaName: "foxglove.CameraCalibration" },
@@ -288,6 +304,7 @@ const ImageModeFoxgloveImage = ({ imageType }: { imageType: "raw" | "png" }) => 
   return (
     <PanelSetup fixture={fixture}>
       <ImagePanel
+        onDownload={onDownload}
         overrideConfig={{
           ...ImagePanel.defaultConfig,
           followTf: undefined,
@@ -300,6 +317,9 @@ const ImageModeFoxgloveImage = ({ imageType }: { imageType: "raw" | "png" }) => 
           imageMode: {
             calibrationTopic: imageType === "raw" ? "/cam2/info" : "/cam1/info",
             imageTopic: imageType === "raw" ? "/cam2/raw" : "/cam1/png",
+            rotation,
+            flipHorizontal,
+            flipVertical,
           },
           cameraState: {
             distance: 1.5,
@@ -319,72 +339,131 @@ const ImageModeFoxgloveImage = ({ imageType }: { imageType: "raw" | "png" }) => 
   );
 };
 
-export const ImageModeFoxgloveRawImage: StoryObj = {
-  render: () => <ImageModeFoxgloveImage imageType="raw" />,
+export const ImageModeFoxgloveRawImage: StoryObj<
+  React.ComponentProps<typeof ImageModeFoxgloveImage>
+> = {
+  render: ImageModeFoxgloveImage,
+  args: { imageType: "raw" },
 };
 
-export const ImageModeFoxglovePngImage: StoryObj = {
-  render: () => <ImageModeFoxgloveImage imageType="png" />,
+export const ImageModeFoxglovePngImage: StoryObj<
+  React.ComponentProps<typeof ImageModeFoxgloveImage>
+> = {
+  render: ImageModeFoxgloveImage,
+  args: { imageType: "png" },
 };
 
-export const ImageModeResizeHandled: StoryObj = {
-  render: () => <ImageModeFoxgloveImage imageType="raw" />,
-
+export const DownloadRawImage: StoryObj<React.ComponentProps<typeof ImageModeFoxgloveImage>> = {
+  render: function Story(args) {
+    const [src, setSrc] = useState<string | undefined>();
+    const [filename, setFilename] = useState<string | undefined>();
+    const onDownload = useCallback((blob: Blob, fileName: string) => {
+      setSrc(URL.createObjectURL(blob));
+      setFilename(fileName);
+    }, []);
+    return (
+      <Stack direction="row" fullHeight>
+        <Stack style={{ width: "50%" }}>
+          <ImageModeFoxgloveImage {...args} onDownload={onDownload} />
+        </Stack>
+        <Stack style={{ width: "50%" }} zeroMinWidth>
+          <div>{filename == undefined ? "Not downloaded" : `Downloaded image: ${filename}`}</div>
+          <img src={src} style={{ imageRendering: "pixelated", border: "1px solid red" }} />
+        </Stack>
+      </Stack>
+    );
+  },
+  args: { imageType: "raw" },
   play: async () => {
     const canvas = document.querySelector("canvas")!;
-    // Input attaches resize listener to parent element, so we need to resize that.
-    const parentEl = canvas.parentElement!;
+    const inspectObjects = screen.getByRole("button", { name: /inspect objects/i });
+    userEvent.click(inspectObjects);
+    await delay(1000);
+    const rect = canvas.getBoundingClientRect();
+    userEvent.click(canvas, { clientX: rect.width / 2, clientY: rect.height / 2 });
     await delay(30);
-    parentEl.style.width = "50%";
-    canvas.dispatchEvent(new Event("resize"));
-    await delay(30);
+    userEvent.click(await screen.findByText("Download"));
   },
 };
 
-export const ImageModePan: StoryObj = {
-  render: () => <ImageModeFoxgloveImage imageType="raw" />,
-  play: async () => {
-    const canvas = document.querySelector("canvas")!;
-    fireEvent.mouseDown(canvas, { clientX: 200, clientY: 200 });
-    fireEvent.mouseMove(canvas, { clientX: 400, clientY: 200 });
-    fireEvent.mouseUp(canvas, { clientX: 400, clientY: 200 });
-  },
+export const DownloadPngImage: StoryObj<React.ComponentProps<typeof ImageModeFoxgloveImage>> = {
+  ...DownloadRawImage,
+  args: { imageType: "png" },
 };
 
-export const ImageModeZoomThenPan: StoryObj = {
-  render: () => <ImageModeFoxgloveImage imageType="raw" />,
-  play: async () => {
-    const canvas = document.querySelector("canvas")!;
-    fireEvent.wheel(canvas, { deltaY: -30, clientX: 400, clientY: 400 });
-    fireEvent.wheel(canvas, { deltaY: -30, clientX: 400, clientY: 400 });
-    fireEvent.mouseDown(canvas, { clientX: 200, clientY: 200 });
-    fireEvent.mouseMove(canvas, { clientX: 400, clientY: 200 });
-    fireEvent.mouseUp(canvas, { clientX: 400, clientY: 200 });
-  },
+export const DownloadPngImageFlipH: StoryObj<React.ComponentProps<typeof ImageModeFoxgloveImage>> =
+  {
+    ...DownloadRawImage,
+    args: { imageType: "png", flipHorizontal: true },
+  };
+
+export const DownloadPngImageFlipV: StoryObj<React.ComponentProps<typeof ImageModeFoxgloveImage>> =
+  {
+    ...DownloadRawImage,
+    args: { imageType: "png", flipVertical: true },
+  };
+
+export const DownloadPngImageFlipHV: StoryObj<React.ComponentProps<typeof ImageModeFoxgloveImage>> =
+  {
+    ...DownloadRawImage,
+    args: { imageType: "png", flipHorizontal: true, flipVertical: true },
+  };
+
+export const DownloadPngImage90: StoryObj<React.ComponentProps<typeof ImageModeFoxgloveImage>> = {
+  ...DownloadRawImage,
+  args: { imageType: "png", rotation: 90 },
 };
 
-export const ImageModePanThenZoom: StoryObj = {
-  render: () => <ImageModeFoxgloveImage imageType="raw" />,
-  play: async () => {
-    const canvas = document.querySelector("canvas")!;
-    fireEvent.mouseDown(canvas, { clientX: 200, clientY: 200 });
-    fireEvent.mouseMove(canvas, { clientX: 400, clientY: 200 });
-    fireEvent.mouseUp(canvas, { clientX: 400, clientY: 200 });
-    fireEvent.wheel(canvas, { deltaY: -30, clientX: 400, clientY: 400 });
-    fireEvent.wheel(canvas, { deltaY: -30, clientX: 400, clientY: 400 });
-  },
+export const DownloadPngImage180: StoryObj<React.ComponentProps<typeof ImageModeFoxgloveImage>> = {
+  ...DownloadRawImage,
+  args: { imageType: "png", rotation: 180 },
 };
 
-export const ImageModePanThenZoomReset: StoryObj = {
-  render: () => <ImageModeFoxgloveImage imageType="raw" />,
-  play: async (ctx) => {
-    await ImageModePanThenZoom.play?.(ctx);
-    userEvent.click(await screen.findByTestId("reset-view"));
-  },
+export const DownloadPngImage270: StoryObj<React.ComponentProps<typeof ImageModeFoxgloveImage>> = {
+  ...DownloadRawImage,
+  args: { imageType: "png", rotation: 270 },
 };
 
-export const ImageModePick: StoryObj = {
-  render: () => <ImageModeFoxgloveImage imageType="raw" />,
+export const DownloadPngImage90FlipH: StoryObj<
+  React.ComponentProps<typeof ImageModeFoxgloveImage>
+> = {
+  ...DownloadRawImage,
+  args: { imageType: "png", rotation: 90, flipHorizontal: true },
+};
+
+export const DownloadPngImage90FlipV: StoryObj<
+  React.ComponentProps<typeof ImageModeFoxgloveImage>
+> = {
+  ...DownloadRawImage,
+  args: { imageType: "png", rotation: 90, flipVertical: true },
+};
+
+export const DownloadPngImage90FlipHV: StoryObj<
+  React.ComponentProps<typeof ImageModeFoxgloveImage>
+> = {
+  ...DownloadRawImage,
+  args: { imageType: "png", rotation: 90, flipHorizontal: true, flipVertical: true },
+};
+
+export const ImageModeResizeHandled: StoryObj<React.ComponentProps<typeof ImageModeFoxgloveImage>> =
+  {
+    render: ImageModeFoxgloveImage,
+    args: { imageType: "raw" },
+
+    play: async () => {
+      const canvas = document.querySelector("canvas")!;
+      // Input attaches resize listener to parent element, so we need to resize that.
+      const parentEl = canvas.parentElement!;
+      await delay(30);
+      parentEl.style.width = "50%";
+      canvas.dispatchEvent(new Event("resize"));
+      await delay(30);
+    },
+  };
+
+export const ImageModePick: StoryObj<React.ComponentProps<typeof ImageModeFoxgloveImage>> = {
+  render: ImageModeFoxgloveImage,
+  args: { imageType: "raw" },
 
   play: async () => {
     const canvas = document.querySelector("canvas")!;

@@ -47,7 +47,7 @@ import {
 } from "../../ros";
 import { topicIsConvertibleToSchema } from "../../topicIsConvertibleToSchema";
 import { ICameraHandler } from "../ICameraHandler";
-import { decodeCompressedImageToBitmap } from "../Images/decodeCompressedImageToBitmap";
+import { decodeCompressedImageToBitmap } from "../Images/decodeImage";
 import { getTopicMatchPrefix, sortPrefixMatchesToFront } from "../Images/topicPrefixMatching";
 
 const IMAGE_TOPIC_PATH = ["imageMode", "imageTopic"];
@@ -123,13 +123,10 @@ export class ImageMode
 
     this.#camera = new ImageModeCamera();
 
-    /**
-     * By default the camera is facing down the -y axis with -z up,
-     * where the image is on the +y axis with +z up.
-     * To correct this we rotate the camera 180 degrees around the x axis.
-     */
-    this.#camera.quaternion.setFromAxisAngle(new THREE.Vector3(1, 0, 0), Math.PI);
     this.#camera.setCanvasSize(canvasSize.width, canvasSize.height);
+    this.#camera.setRotation(renderer.config.imageMode.rotation ?? 0);
+    this.#camera.setFlipHorizontal(renderer.config.imageMode.flipHorizontal ?? false);
+    this.#camera.setFlipVertical(renderer.config.imageMode.flipVertical ?? false);
 
     renderer.settings.errors.on("update", this.#handleErrorChange);
     renderer.settings.errors.on("clear", this.#handleErrorChange);
@@ -268,6 +265,9 @@ export class ImageMode
         draft.imageMode.calibrationTopic = matchingCalibrationTopic.name;
       }
     });
+    if (matchingCalibrationTopic) {
+      this.#setHasCalibrationTopic(true);
+    }
   };
 
   /** Choose a calibration topic that best matches the given `imageTopic`. */
@@ -354,9 +354,6 @@ export class ImageMode
     // const transformMarkers: boolean = false;
     // const synchronize: boolean = false;
     // const smooth: boolean = false;
-    // const flipHorizontal: boolean = false;
-    // const flipVertical: boolean = false;
-    // const rotation = 0;
     // const minValue: number | undefined = undefined;
     // const maxValue: number | undefined = undefined;
 
@@ -396,30 +393,27 @@ export class ImageMode
     //   label: "🚧 Bilinear smoothing",
     //   value: smooth,
     // };
-    // fields.TODO_flipHorizontal = {
-    //   readonly: true,
-    //   input: "boolean",
-    //   label: "🚧 Flip horizontal",
-    //   value: flipHorizontal,
-    // };
-    // fields.TODO_flipVertical = {
-    //   readonly: true,
-    //   input: "boolean",
-    //   label: "🚧 Flip vertical",
-    //   value: flipVertical,
-    // };
-    // fields.TODO_rotation = {
-    //   readonly: true,
-    //   input: "select",
-    //   label: "🚧 Rotation",
-    //   value: rotation,
-    //   options: [
-    //     { label: "0°", value: 0 },
-    //     { label: "90°", value: 90 },
-    //     { label: "180°", value: 180 },
-    //     { label: "270°", value: 270 },
-    //   ],
-    // };
+    fields.flipHorizontal = {
+      input: "boolean",
+      label: "Flip horizontal",
+      value: config.imageMode.flipHorizontal ?? false,
+    };
+    fields.flipVertical = {
+      input: "boolean",
+      label: "Flip vertical",
+      value: config.imageMode.flipVertical ?? false,
+    };
+    fields.rotation = {
+      input: "toggle",
+      label: "Rotation",
+      value: config.imageMode.rotation ?? 0,
+      options: [
+        { label: "0°", value: 0 },
+        { label: "90°", value: 90 },
+        { label: "180°", value: 180 },
+        { label: "270°", value: 270 },
+      ],
+    };
     // fields.TODO_minValue = {
     //   readonly: true,
     //   input: "number",
@@ -480,7 +474,23 @@ export class ImageMode
           this.renderer.updateConfig((draft) => {
             draft.imageMode.calibrationTopic = calibrationTopic.name;
           });
+          this.#setHasCalibrationTopic(true);
         }
+      }
+
+      if (config.rotation !== prevImageModeConfig.rotation) {
+        this.#imageRenderable?.setRotation(config.rotation ?? 0);
+        this.#camera.setRotation(config.rotation ?? 0);
+      }
+
+      if (config.flipHorizontal !== prevImageModeConfig.flipHorizontal) {
+        this.#imageRenderable?.setFlipHorizontal(config.flipHorizontal ?? false);
+        this.#camera.setFlipHorizontal(config.flipHorizontal ?? false);
+      }
+
+      if (config.flipVertical !== prevImageModeConfig.flipVertical) {
+        this.#imageRenderable?.setFlipVertical(config.flipVertical ?? false);
+        this.#camera.setFlipVertical(config.flipVertical ?? false);
       }
 
       this.#updateViewAndRenderables();
@@ -633,6 +643,9 @@ export class ImageMode
       cameraInfo: undefined,
       cameraModel: undefined,
       image,
+      rotation: this.renderer.config.imageMode.rotation ?? 0,
+      flipHorizontal: this.renderer.config.imageMode.flipHorizontal ?? false,
+      flipVertical: this.renderer.config.imageMode.flipVertical ?? false,
       texture: undefined,
       material: undefined,
       geometry: undefined,
@@ -677,10 +690,7 @@ export class ImageMode
     return cameraInfoFrameId ?? imageFrameId;
   }
 
-  #getImageModeSettings(): {
-    readonly calibrationTopic?: string;
-    readonly imageTopic?: string;
-  } {
+  #getImageModeSettings() {
     return this.renderer.config.imageMode;
   }
 

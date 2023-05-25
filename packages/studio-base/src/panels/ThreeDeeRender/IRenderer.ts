@@ -3,15 +3,21 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/
 
 import EventEmitter from "eventemitter3";
-import { Immutable } from "immer";
 import * as THREE from "three";
 
-import { MessageEvent, ParameterValue, SettingsIcon, Topic, VariableValue } from "@foxglove/studio";
+import {
+  Immutable,
+  MessageEvent,
+  ParameterValue,
+  SettingsIcon,
+  Topic,
+  VariableValue,
+} from "@foxglove/studio";
 import { ICameraHandler } from "@foxglove/studio-base/panels/ThreeDeeRender/renderables/ICameraHandler";
 import { LabelPool } from "@foxglove/three-text";
 
 import { Input } from "./Input";
-import { ModelCache, MeshUpAxis } from "./ModelCache";
+import { MeshUpAxis, ModelCache } from "./ModelCache";
 import { PickedRenderable } from "./Picker";
 import { SceneExtension } from "./SceneExtension";
 import { SettingsManager } from "./SettingsManager";
@@ -74,6 +80,10 @@ export type ImageModeConfig = {
   calibrationTopic?: string;
   /** Annotation topic settings, analogous to {@link RendererConfig.topics} */
   annotations?: ImageAnnotationSubscription[];
+  /** Rotation */
+  rotation?: 0 | 90 | 180 | 270;
+  flipHorizontal?: boolean;
+  flipVertical?: boolean;
 };
 
 export type RendererConfig = {
@@ -255,7 +265,7 @@ export interface IRenderer extends EventEmitter<RendererEvents> {
    * @param allFrames - array of all preloaded messages
    * @returns {boolean} - whether the allFramesCursor has been updated and new messages were read in
    */
-  handleAllFramesMessages(allFrames?: readonly MessageEvent<unknown>[]): boolean;
+  handleAllFramesMessages(allFrames?: readonly MessageEvent[]): boolean;
 
   updateConfig(updateHandler: (draft: RendererConfig) => void): void;
 
@@ -286,9 +296,9 @@ export interface IRenderer extends EventEmitter<RendererEvents> {
    * of the topics list changes */
   setTopics(topics: ReadonlyArray<Topic> | undefined): void;
 
-  setParameters(parameters: ReadonlyMap<string, ParameterValue> | undefined): void;
+  setParameters(parameters: Immutable<Map<string, ParameterValue>> | undefined): void;
 
-  setVariables(variables: ReadonlyMap<string, VariableValue>): void;
+  setVariables(variables: Immutable<Map<string, VariableValue>>): void;
 
   updateCustomLayersCount(): void;
 
@@ -303,7 +313,7 @@ export interface IRenderer extends EventEmitter<RendererEvents> {
 
   setSelectedRenderable(selection: PickedRenderable | undefined): void;
 
-  addMessageEvent(messageEvent: Readonly<MessageEvent<unknown>>): void;
+  addMessageEvent(messageEvent: Readonly<MessageEvent>): void;
 
   /**  Set desired render/display frame, will render using fallback if id is undefined or frame does not exist */
   setFollowFrameId(frameId: string | undefined): void;
