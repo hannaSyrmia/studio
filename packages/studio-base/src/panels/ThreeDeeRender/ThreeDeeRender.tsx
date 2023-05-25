@@ -25,6 +25,8 @@ import {
   VariableValue,
 } from "@foxglove/studio";
 import { AppSetting } from "@foxglove/studio-base/AppSetting";
+import { DownloadModal } from "@foxglove/studio-base/panels/video/DownloadVIdeoModal";
+import { stopRecordVideo } from "@foxglove/studio-base/panels/video/downloadVideo";
 import ThemeProvider from "@foxglove/studio-base/theme/ThemeProvider";
 
 import type {
@@ -52,8 +54,6 @@ import type { LayerSettingsTransform } from "./renderables/FrameAxes";
 import { PublishClickEvent } from "./renderables/PublishClickTool";
 import { DEFAULT_PUBLISH_SETTINGS } from "./renderables/PublishSettings";
 import { InterfaceMode } from "./types";
-import { stopRecordVideo } from "@foxglove/studio-base/panels/video/downloadVideo";
-import { DownloadModal } from "@foxglove/studio-base/panels/video/DownloadVIdeoModal";
 
 const log = Logger.getLogger(__filename);
 
@@ -100,9 +100,10 @@ export function ThreeDeeRender(props: {
   interfaceMode: InterfaceMode;
 }): JSX.Element {
   const { context, interfaceMode } = props;
-  const { initialState, saveState, downloadVideoInfo } = context;
+  const { initialState, saveState } = context;
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
-  const { play, stop, start, startTime, seek, endTime } = downloadVideoInfo;
+  const { playerState, seekPlayback, startPlayback, pausePlayback } = context.downloadVideoInfo();
   // Load and save the persisted panel configuration
   const [config, setConfig] = useState<Immutable<RendererConfig>>(() => {
     const partialConfig = initialState as DeepPartial<RendererConfig> | undefined;
@@ -739,8 +740,8 @@ export function ThreeDeeRender(props: {
     context.dataSourceProfile === "ros1" || context.dataSourceProfile === "ros2";
   const canPublish = context.publish != undefined && isRosDataSource;
 
-  const [downloadStarted, setDownloadStarted] = useState(false);
-  const [isDownloadPressed, setIsDownloadPressed] = useState(false);
+  const [downloadStarted, setDownloadStarted] = useState<unknown>(false);
+  const [isDownloadPressed, setIsDownloadPressed] = useState<unknown>(false);
 
   const showDownloadModal = () => {
     setIsDownloadPressed(true);
@@ -748,10 +749,10 @@ export function ThreeDeeRender(props: {
 
   const stopRecord = () => {
     setDownloadStarted(false);
-    stop();
+    pausePlayback();
     stopRecordVideo();
   };
-  const [playingTime, setPlayingTime] = useState(0);
+  const [playingTime, setPlayingTime] = useState<number | undefined>(0);
 
   useEffect(() => {
     if (currentTime && currentTime.sec === playingTime) {
@@ -760,12 +761,11 @@ export function ThreeDeeRender(props: {
   }, [currentTime, playingTime]);
 
   const videoProps = {
-    seek,
-    play,
-    stop,
-    start,
-    startTime,
-    endTime,
+    seek: seekPlayback,
+    play: startPlayback,
+    stop: pausePlayback,
+    startTime: playerState.activeData?.startTime,
+    endTime: playerState.activeData?.endTime,
   };
 
   return (
@@ -805,14 +805,15 @@ export function ThreeDeeRender(props: {
           />
         </RendererContext.Provider>
       </div>
-      {isDownloadPressed &&
-      <DownloadModal
-        setDownloadStarted={setDownloadStarted}
-        setIsDownloadPressed={setIsDownloadPressed}
-        canvas={canvas}
-        videoProps={videoProps}
-        setPlayingTime={setPlayingTime}
-      />}
+      {(Boolean(isDownloadPressed)) && (
+        <DownloadModal
+          setDownloadStarted={setDownloadStarted}
+          setIsDownloadPressed={setIsDownloadPressed}
+          canvas={canvas}
+          videoProps={videoProps}
+          setPlayingTime={setPlayingTime}
+        />
+      )}
     </ThemeProvider>
   );
 }

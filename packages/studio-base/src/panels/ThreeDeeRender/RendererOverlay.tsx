@@ -67,19 +67,6 @@ const useStyles = makeStyles()((theme) => ({
     marginBottom: theme.spacing(1),
     marginRight: theme.spacing(1),
   },
-  paper: {
-    padding: "20px",
-  },
-  downloadButton: {
-    height: "50px",
-    width: "100px",
-    background: "blue",
-  },
-  input: {
-    width: "250px",
-    height: "50px",
-    border: "2px solid blue",
-  },
 }));
 
 /**
@@ -102,7 +89,7 @@ export function RendererOverlay(props: {
   timezone: string | undefined;
   downloadVideo: () => void;
   stopRecord: () => void;
-  downloadStarted: boolean;
+  downloadStarted: unknown;
 }): JSX.Element {
   const { t } = useTranslation("threeDee");
   const { classes } = useStyles();
@@ -336,9 +323,9 @@ export function RendererOverlay(props: {
             <IconButton
               data-testid="download-button"
               className={classes.iconButton}
-              color={props.downloadStarted ? "info" : "inherit"}
-              title={props.downloadStarted ? "Stop record and Download" : "Download Video"}
-              onClick={props.downloadStarted ? props.stopRecord : props.downloadVideo}
+              color={props.downloadStarted === true ? "info" : "inherit"}
+              title={props.downloadStarted === true ? "Stop record and Download" : "Download Video"}
+              onClick={props.downloadStarted === true ? props.stopRecord : props.downloadVideo}
             >
               <ArrowDownloadRegular className={classes.iconButton} />
             </IconButton>

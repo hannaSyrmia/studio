@@ -391,7 +391,7 @@ export type PanelExtensionContext = {
   /**
    * Date for download video
    */
-  downloadVideoInfo: unknown;
+  downloadVideoInfo: () => void
 };
 
 export type ExtensionPanelRegistration = {

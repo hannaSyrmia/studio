@@ -1,22 +1,19 @@
-import { Button, Dialog, Divider, IconButton, Input, Typography } from "@mui/material";
-import Stack from "@foxglove/studio-base/components/Stack";
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at http://mozilla.org/MPL/2.0/
+
 import CloseIcon from "@mui/icons-material/Close";
+import { Button, Dialog, Divider, IconButton, Input, Typography } from "@mui/material";
+import { useEffect, useState } from "react";
 import { makeStyles } from "tss-react/mui";
+
 import { fromSec, Time, toSec } from "@foxglove/rostime";
+import Stack from "@foxglove/studio-base/components/Stack";
 import { isDownloadStopped, recordVideo } from "@foxglove/studio-base/panels/video/downloadVideo";
 import { subtractTimes } from "@foxglove/studio-base/players/UserNodePlayer/nodeTransformerWorker/typescript/userUtils/time";
-import { useEffect, useState } from "react";
 import { Player } from "@foxglove/studio-base/players/types";
 
 const useStyles = makeStyles()((theme) => ({
-  grid: {
-    alignItems: "center",
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr auto",
-    gap: theme.spacing(1),
-    overflow: "auto",
-    alignContent: "flex-start",
-  },
   paper: {
     maxWidth: `calc(min(${theme.breakpoints.values.md}px, 100% - ${theme.spacing(4)}))`,
     padding: "48px",
@@ -27,7 +24,7 @@ const useStyles = makeStyles()((theme) => ({
     overflow: "hidden",
     height: "50px",
     background: "#6f3be8",
-    color: "fff"
+    color: "fff",
   },
   input: {
     width: "250px",
@@ -40,34 +37,34 @@ const useStyles = makeStyles()((theme) => ({
 }));
 
 export type VideoProps = {
-  stop: NonNullable<Player["pausePlayback"]>,
-  start: NonNullable<Player["startPlayback"]>,
-  seek: NonNullable<Player["seekPlayback"]>,
-  startTime: Time,
-  endTime: Time,
-  play: () => void
-}
+  stop: NonNullable<Player["pausePlayback"]>;
+  play: NonNullable<Player["startPlayback"]>;
+  seek: NonNullable<Player["seekPlayback"]>;
+  startTime: Time;
+  endTime: Time;
+};
+
 export type DownloadVideoModalProps = {
-  setPlayingTime: (time: number) => void;
-  canvas: HTMLCanvasElement | ReactNull | undefined;
+  setPlayingTime: (time: number | undefined) => void;
+  canvas: HTMLCanvasElement | ReactNull;
   videoProps: VideoProps;
-  setDownloadStarted: (data: boolean) => void;
-  setIsDownloadPressed: (data: boolean) => void;
+  setDownloadStarted: (value: unknown) => void;
+  setIsDownloadPressed: (flag: unknown) => void;
 };
 
 export function DownloadModal(props: DownloadVideoModalProps): JSX.Element {
   const { setPlayingTime, canvas, videoProps, setDownloadStarted, setIsDownloadPressed } = props;
   const { classes } = useStyles();
-  const [fromRecordTime, setFromRecordTime] = useState<String>();
-  const [toRecordTime, setToRecordTime] = useState<String>();
-  const [videoName, setVideoMame] = useState<string>('video');
+  const [fromRecordTime, setFromRecordTime] = useState<string>();
+  const [toRecordTime, setToRecordTime] = useState<string>();
+  const [videoName, setVideoMame] = useState<string>("video");
 
   useEffect(() => {
-    if (isDownloadStopped) {
+    if (isDownloadStopped()) {
       setDownloadStarted(false);
       videoProps.stop();
     }
-  }, [isDownloadStopped]);
+  }, [setDownloadStarted, videoProps]);
 
   const downloadFullVideo = () => {
     playVideoAndDownload(false);
@@ -78,18 +75,25 @@ export function DownloadModal(props: DownloadVideoModalProps): JSX.Element {
   };
 
   const seekVideo = () => {
-    setPlayingTime(videoProps.startTime?.sec + Number(toRecordTime));
-    videoProps.seek(fromSec(videoProps.startTime?.sec + Number(fromRecordTime)));
+    setPlayingTime(videoProps.startTime.sec + Number(toRecordTime));
+    videoProps.seek(fromSec(videoProps.startTime.sec + Number(fromRecordTime)));
     playVideoAndDownload(true);
   };
 
-  const playVideoAndDownload = (fromRange = false) => {
-    if (!fromRange) {
-      videoProps.seek(fromSec(videoProps.startTime?.sec));
-      setPlayingTime(videoProps.endTime?.sec)
+  const playVideoAndDownload = (fromRange: unknown) => {
+    if (fromRange === false) {
+      console.log('>>>>>>>>>>>>>>>from range')
+      videoProps.seek(fromSec(videoProps.startTime.sec));
+      setPlayingTime(videoProps.endTime.sec);
     }
     videoProps.play();
-    recordVideo(canvas, videoName,fromRange ? undefined : toSec(subtractTimes(videoProps.endTime as Time, videoProps.startTime)) );
+    recordVideo(
+      canvas,
+      videoName,
+      fromRange !== false
+        ? undefined
+        : toSec(subtractTimes(videoProps.endTime, videoProps.startTime)),
+    );
     setDownloadStarted(true);
     setIsDownloadPressed(false);
   };
@@ -107,17 +111,22 @@ export function DownloadModal(props: DownloadVideoModalProps): JSX.Element {
       }}
     >
       <Stack direction="row" justifyContent="space-between" style={{ marginBottom: 32 }}>
-        <Typography variant="h1" color="primary" gutterBottom>Choose download option</Typography>
+        <Typography variant="h1" color="primary" gutterBottom>
+          Choose download option
+        </Typography>
         <IconButton
           className={classes.closeButton}
           onClick={() => setIsDownloadPressed(false)}
-          edge="end">
+          edge="end"
+        >
           <CloseIcon />
         </IconButton>
       </Stack>
       <Divider />
-      <Stack justifyContent="space-between" style={{ marginBottom: 16, marginTop: 16  }}>
-        <Typography variant="h5" gutterBottom>Enter video name</Typography>
+      <Stack justifyContent="space-between" style={{ marginBottom: 16, marginTop: 16 }}>
+        <Typography variant="h5" gutterBottom>
+          Enter video name
+        </Typography>
         <Input
           className={classes.input}
           autoFocus={fromRecordTime === ""}
@@ -134,7 +143,9 @@ export function DownloadModal(props: DownloadVideoModalProps): JSX.Element {
         gap={4}
         style={{ marginBottom: 16, marginTop: 16 }}
       >
-        <Typography variant="h5" gutterBottom>Download full video</Typography>
+        <Typography variant="h5" gutterBottom>
+          Download full video
+        </Typography>
         <Button
           size="large"
           onClick={downloadFullVideo}
@@ -144,13 +155,16 @@ export function DownloadModal(props: DownloadVideoModalProps): JSX.Element {
           Download
         </Button>
       </Stack>
-      <Divider> <Typography variant="h5"> Or </Typography> </Divider>
+      <Divider>
+        {" "}
+        <Typography variant="h5"> Or </Typography>{" "}
+      </Divider>
 
-      <Typography variant="h5" gutterBottom style={{ marginBottom: 16, marginTop: 16 }}>Download a specific video interval</Typography>
+      <Typography variant="h5" gutterBottom style={{ marginBottom: 16, marginTop: 16 }}>
+        Download a specific video interval
+      </Typography>
 
-      <Stack direction="row"
-             justifyContent="space-between"
-             gap={4}>
+      <Stack direction="row" justifyContent="space-between" gap={4}>
         <Input
           className={classes.input}
           autoFocus={fromRecordTime === ""}

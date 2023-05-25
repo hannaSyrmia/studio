@@ -106,7 +106,7 @@ export function ImageCanvas(props: Props): JSX.Element {
     config,
     saveConfig,
     onStartRenderImage,
-    setVideoCanvas
+    setVideoCanvas,
   } = props;
   const { mode } = config;
   const { classes, cx } = useStyles();
@@ -214,7 +214,7 @@ export function ImageCanvas(props: Props): JSX.Element {
       workerRef.current = undefined;
       webWorkerManager.unregisterWorkerListener(id);
     };
-  }, [renderInMainThread, workerId]);
+  }, [renderInMainThread, workerId, setVideoCanvas]);
 
   const {
     setPan,

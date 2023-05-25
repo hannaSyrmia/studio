@@ -88,6 +88,7 @@ function RGBStory({ encoding }: { encoding: string }) {
       saveConfig={noop}
       setActivePixelData={noop}
       onStartRenderImage={() => () => undefined}
+      setVideoCanvas={noop}
     />
   );
 }
@@ -135,6 +136,7 @@ function BayerStory({ encoding }: { encoding: string }) {
       saveConfig={noop}
       setActivePixelData={noop}
       onStartRenderImage={() => () => undefined}
+      setVideoCanvas={noop}
     />
   );
 }
@@ -176,6 +178,7 @@ function Mono16Story({
       saveConfig={noop}
       setActivePixelData={noop}
       onStartRenderImage={() => () => undefined}
+      setVideoCanvas={noop}
     />
   );
 }
@@ -242,6 +245,7 @@ export const MarkersOriginal: StoryObj = {
           saveConfig={noop}
           setActivePixelData={noop}
           onStartRenderImage={() => readySignal}
+          setVideoCanvas={noop}
         />
       </div>
     );
@@ -275,6 +279,7 @@ export const MarkersTransformed: StoryObj = {
           saveConfig={noop}
           setActivePixelData={noop}
           onStartRenderImage={() => readySignal}
+          setVideoCanvas={noop}
         />
       </div>
     );
@@ -308,6 +313,7 @@ export const MarkersImageSize: StoryObj = {
           saveConfig={noop}
           setActivePixelData={noop}
           onStartRenderImage={() => readySignal}
+          setVideoCanvas={noop}
         />
       </div>
     );
@@ -342,6 +348,7 @@ export const MarkersWithFallbackRenderingUsingMainThread: StoryObj = {
           setActivePixelData={noop}
           renderInMainThread
           onStartRenderImage={() => () => undefined}
+          setVideoCanvas={noop}
         />
         <br />
         <div>transformed markers</div>
@@ -358,6 +365,7 @@ export const MarkersWithFallbackRenderingUsingMainThread: StoryObj = {
           setActivePixelData={noop}
           renderInMainThread
           onStartRenderImage={() => () => undefined}
+          setVideoCanvas={noop}
         />
         <div>markers with different original image size</div>
         <ImageCanvas
@@ -373,6 +381,7 @@ export const MarkersWithFallbackRenderingUsingMainThread: StoryObj = {
           setActivePixelData={noop}
           renderInMainThread
           onStartRenderImage={() => () => undefined}
+          setVideoCanvas={noop}
         />
       </div>
     );
@@ -399,6 +408,7 @@ export const ErrorState: StoryObj = {
         saveConfig={noop}
         setActivePixelData={noop}
         onStartRenderImage={() => () => undefined}
+        setVideoCanvas={noop}
       />
     );
   },
@@ -423,6 +433,7 @@ export const CallsOnRenderFrameWhenRenderingSucceeds: StoryObj = {
             saveConfig={noop}
             setActivePixelData={noop}
             onStartRenderImage={onStartRenderImage}
+            setVideoCanvas={noop}
           />
         )}
       </ShouldCallOnRenderImage>
@@ -452,6 +463,7 @@ export const CallsOnRenderFrameWhenRenderingFails: StoryObj = {
             saveConfig={noop}
             setActivePixelData={noop}
             onStartRenderImage={onStartRenderImage}
+            setVideoCanvas={noop}
           />
         )}
       </ShouldCallOnRenderImage>
