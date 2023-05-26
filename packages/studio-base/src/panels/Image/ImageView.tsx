@@ -26,6 +26,8 @@ import {
 } from "@foxglove/studio-base/components/PanelContextMenu";
 import Stack from "@foxglove/studio-base/components/Stack";
 import { DownloadModal } from "@foxglove/studio-base/panels/video/DownloadVIdeoModal";
+import { useAnalytics } from "@foxglove/studio-base/context/AnalyticsContext";
+import { AppEvent } from "@foxglove/studio-base/services/IAnalytics";
 import inScreenshotTests from "@foxglove/studio-base/stories/inScreenshotTests";
 import ThemeProvider from "@foxglove/studio-base/theme/ThemeProvider";
 import { CameraInfo } from "@foxglove/studio-base/types/Messages";
@@ -108,6 +110,7 @@ export function ImageView({ context }: Props): JSX.Element {
   const [downloadStarted, setDownloadStarted] = useState<unknown>(false);
   const [playingTime, setPlayingTime] = useState<number | undefined>(0);
 
+  const analytics = useAnalytics();
   const { classes, cx } = useStyles();
   const [renderDone, setRenderDone] = useState(() => () => {});
   const [topics, setTopics] = useState<readonly Topic[]>([]);
@@ -337,8 +340,9 @@ export function ImageView({ context }: Props): JSX.Element {
       return;
     }
 
+    void analytics.logEvent(AppEvent.IMAGE_DOWNLOAD, { legacy: true });
     await downloadImage(lastImageMessageRef.current, topic, config);
-  }, [imageTopics, cameraTopic, config]);
+  }, [imageTopics, analytics, config, cameraTopic]);
 
   useEffect(() => {
     if (isDownloadStopped()) {
